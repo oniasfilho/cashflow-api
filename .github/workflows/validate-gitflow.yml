@@ -1,0 +1,44 @@
+name: GitFlow policy
+
+on:
+  pull_request_target:
+    branches:
+      - develop
+      - master
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate branch route
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate source and target branches
+        shell: bash
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$BASE_BRANCH" == "develop" &&
+                "$HEAD_BRANCH" =~ ^(feature|fix|hotfix)/[a-z0-9][a-z0-9._-]*$ ]]; then
+            echo "Valid development route: $HEAD_BRANCH -> develop"
+            exit 0
+          fi
+
+          if [[ "$BASE_BRANCH" == "master" &&
+                "$HEAD_BRANCH" =~ ^release/[a-z0-9][a-z0-9._-]*$ ]]; then
+            echo "Valid release route: $HEAD_BRANCH -> master"
+            exit 0
+          fi
+
+          echo "::error::Invalid GitFlow route: $HEAD_BRANCH -> $BASE_BRANCH"
+          exit 1
